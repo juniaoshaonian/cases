@@ -1,8 +1,8 @@
-package main
+package testwebserver
 
 import "github.com/gin-gonic/gin"
 
-func main() {
+func InitServer()  {
 	r := gin.Default()
 	hdl := &TestHandler{}
 	hdl.RegisterRouter(r)

@@ -1,17 +1,16 @@
 package batch_comsume_batch_commit
 
 import (
+	"cases/kafka/testwebserver"
 	"context"
 	kafkago "github.com/segmentio/kafka-go"
 	"log"
-	"time"
 )
 
 const DefaultBatchSize = 10
 
 type Consumer struct {
 	reader *kafkago.Reader
-	count  int64
 }
 
 func NewConsumer(topic, groupId string) *Consumer {
@@ -23,17 +22,25 @@ func NewConsumer(topic, groupId string) *Consumer {
 	return &Consumer{reader: reader}
 }
 
-func (c *Consumer) Consume() {
+func (c *Consumer) Consume(ctx context.Context) {
 	for {
+		if ctx.Done() != nil {
+			return
+		}
 		msgs := make([]kafkago.Message, 0, DefaultBatchSize)
 		for i := 0; i < DefaultBatchSize; i++ {
-			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			msg, err := c.reader.ReadMessage(ctx)
 			if err != nil {
 				log.Println(err)
-				continue
+				return
 			}
-
+			msgs = append(msgs, msg)
+		}
+		testwebserver.BatchTest()
+		err := c.reader.CommitMessages(ctx, msgs...)
+		if err != nil {
+			log.Println(err)
+			return
 		}
 	}
 }
